@@ -1,8 +1,8 @@
 {
-  "name": "CursedChrome Implant",
+  "name": "CursedChrome Manifest Version 3",
   "version": "0.0.1",
   "manifest_version": 3,
-  "description": "Example Chrome extension with implant code. You should probably inject/disguise the implant instead of installing this extension directly.",
+  "description": "CursedChrome Manifest Version 3",
   "homepage_url": "https://thehackerblog.com",
   "icons": {
     "16": "icons/icon16.png",
@@ -21,7 +21,7 @@
     "alarms",
     "scripting",
     "webNavigation",
-    "declarativeNetRequestWithHostAccess"
+    "webRequest"
   ],
   "host_permissions":[
     "*://*/*"
