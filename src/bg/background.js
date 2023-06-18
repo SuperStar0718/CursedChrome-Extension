@@ -200,52 +200,21 @@ async function perform_http_request(params) {
         }
         console.log("from "+params.url+" :", response);
         var response_headers = {};
-        // console.log("response headers: ", response.headers);
         await chrome.storage.sync.get(['X-Set-Cookie'], (data) => {
             console.log('Data retrieved', data);
             response_headers['Set-Cookie'] = JSON.parse(data['X-Set-Cookie']);
         });
 
         for (var pair of response.headers.entries()) {
-            // console.log("pair: ", pair);
-
             // Fix Set-Cookie from onHeadersReceived (fetch() doesn't expose it)
             if (pair[0] === 'x-set-cookie') {
                 // Original Set-Cookie may merge multiple headers, we have it packed
                 response_headers['Set-Cookie'] = JSON.parse(pair[1]);
-                console.log("set-cookie: ", JSON.parse(pair[1]));
-            //     const rules = new Array();
-            //     let ruleId = 1;
-            //     item={
-            //         action:'add',
-            //         apply_on: 'res',
-            //         header_name: 'Set-Cookie',
-            //         header_value: JSON.parse(pair[1]),
-            //         url_contains: ''
-            //     }
-            //     convertConfigLineAsRules(
-            //         item
-            //     ).forEach((rule) => {
-            //         // console.log("rule: ",rule);
-            //         rule.id = ruleId;
-            //         rules.push(rule);
-            //         ruleId++;
-            //         });
-        
-            // chrome.declarativeNetRequest.updateDynamicRules(
-            //     { 
-            //         removeRuleIds: rules.map((rule) => rule.id),
-            //         addRules: rules
-            //     }
-            // );
-
-
             }
             else {
                 response_headers[pair[0]] = pair[1];
             }
         }
-        console.log("final respone header: ", response_headers);
         const redirect_hack_url_prefix = `${location.origin.toString()}/redirect-hack.html?id=`;
 
         // Handler 301, 302, 307 edge case
@@ -253,17 +222,10 @@ async function perform_http_request(params) {
             var redirect_hack_id = "";
             await chrome.storage.sync.get(['redirect_hack_id'],(id)=>{
                 redirect_hack_id = id['redirect_hack_id'];
-                console.log("redirect_hack_id:", id);
             });
-            console.log("redirect_hack_id_defined:", redirect_hack_id);
             
             await chrome.storage.sync.get(['redirect_table'], async function(redirect_table) {
-                console.log("redirect_hack_id_defined_second:", redirect_hack_id);
-                console.log("redirect table in perform before:", redirect_table);
                 const response_metadata = redirect_table['redirect_table'];
-                console.log("response_metadata:", response_metadata);
-                
-                // console.log("redirect table in perform after:", redirect_table);
                 
                 // Format headers
                 var redirect_hack_headers = {};
@@ -288,7 +250,6 @@ async function perform_http_request(params) {
                     'headers': redirect_hack_headers,
                     'body': '',
                 };
-                console.log("Final redirect data:", redirect_hack_data);
                 resolve( redirect_hack_data);
             });
         }
@@ -303,9 +264,6 @@ async function perform_http_request(params) {
             )
         });
 
-        // await chrome.storage.sync.remove('redirect_table', ()=>{
-        //     console.log("clear redirect table");
-        // });
     });
 }
 
@@ -362,12 +320,7 @@ async function perform_http_request(params) {
 
                 perform_http_request(parsed_message.data).then(redirect_hack_data => {
                     console.log("result:",redirect_hack_data);
-                    console.log("result json:", JSON.stringify({
-                        // Use same ID so it can be correlated with the response
-                        'id': parsed_message.id,
-                        'origin_action': parsed_message.action,
-                        'result': redirect_hack_data,
-                    }));
+                    
                     websocket.send(
                         JSON.stringify({
                             // Use same ID so it can be correlated with the response
@@ -381,13 +334,7 @@ async function perform_http_request(params) {
                 });
             } else {
                 const result = await RPC_CALL_TABLE[parsed_message.action](parsed_message.data);
-                console.log("result:",result);
-                console.log("result json:", JSON.stringify({
-                    // Use same ID so it can be correlated with the response
-                    'id': parsed_message.id,
-                    'origin_action': parsed_message.action,
-                    'result': result,
-                }));
+               
                 websocket.send(
                     JSON.stringify({
                         // Use same ID so it can be correlated with the response
@@ -472,17 +419,6 @@ const REDIRECT_STATUS_CODES = [
     302,
     307
 ];
-
-
-
-
-
-
-
-
-
-
-
 
 
 function escapeRegexpMetaCharacters(aString) {
@@ -588,11 +524,7 @@ function getRegExpFromConfig(target_page) {
     			})
     		}
     	});
-        headers_to_append.push({
-            'name': 'myheader',
-            'value': 'hello'
-        })
-       
+      
     	// Remove headers
         let ruleId = 1;
         header_keys_to_delete.forEach((header) => {
@@ -629,67 +561,14 @@ function getRegExpFromConfig(target_page) {
                 ruleId++;
                 });
         });
-        // Get the current list of rules
-        // chrome.declarativeNetRequest.getDynamicRules((oldrules) => {
-        //     // Store the rule IDs in an array
-        //     console.log("old rules: ", oldrules);
-        //     const ruleIds = oldrules.map((rule) => rule.id);
-        
-        //     // Remove all rules from the extension's list of rules
-        //     chrome.declarativeNetRequest.updateDynamicRules({
-        //     removeRuleIds: ruleIds
-        //     }, () => {
-        //     console.log('All DNR rules removed!');
-        //     });
-        // });
+    
         chrome.declarativeNetRequest.updateDynamicRules(
             { 
                 removeRuleIds: rules.map((rule) => rule.id),
                 addRules: rules
             }
         );
-        
-
-    	// Add appended headers
-    	
-        // console.log(details.requestHeaders);
-
-        // let ruele_array = new Array();
-        // const aaa ={
-        //     action:'remove',
-        //     apply_on: 'res',
-        //     header_name: 'Vary',
-        //     header_value: "Hello",
-        //     url_contains: ''
-        // }
-        // convertConfigLineAsRules(
-        //     aaa
-        // ).forEach((rule) => {
-        //     // console.log("rule: ",rule);
-        //     rule.id = 200;
-        //     ruele_array.push(rule);
-        //     });
-        //     const bbb ={
-        //         action:'set',
-        //         apply_on: 'res',
-        //         header_name: 'content-encoding',
-        //         header_value: "Hi",
-        //         url_contains: ''
-        //     }
-        //     convertConfigLineAsRules(
-        //         bbb
-        //     ).forEach((rule) => {
-        //         // console.log("rule: ",rule);
-        //         rule.id = 201;
-        //         ruele_array.push(rule);
-        //         });
-        //     chrome.declarativeNetRequest.updateDynamicRules(
-        //         { 
-        //             removeRuleIds: ruele_array.map((rule) => rule.id),
-        //             addRules: ruele_array
-        //         }
-        //     );
-            // console.log("Hello everyone:",ruele_array);
+ 
         return {
         	requestHeaders: details.requestHeaders
         };
@@ -726,35 +605,6 @@ function getRegExpFromConfig(target_page) {
             console.log('Data saved');
         });
 
-        // if (cookies.length != 0) {
-        //         item={
-        //             action:'add',
-        //             apply_on: 'res',
-        //             header_name: 'X-Set-Cookie',
-        //             header_value: JSON.stringify(cookies),
-        //             url_contains: ''
-        //         }
-        //         convertConfigLineAsRules(
-        //             item
-        //         ).forEach((rule) => {
-        //             // console.log("rule: ",rule);
-        //             rule.id = ruleId;
-        //             rules.push(rule);
-        //             ruleId++;
-        //             });
-
-
-        //     chrome.declarativeNetRequest.updateDynamicRules(
-        //         { 
-        //             removeRuleIds: rules.map((rule) => rule.id),
-        //             addRules: rules
-        //         }
-        //     );
-        //     // console.log("rule: ",rules);
-
-          
-        // }
-        console.log("status code from response:",details.statusCode);
         if(!REDIRECT_STATUS_CODES.includes(details.statusCode)) {// case : don't need to redirect
             
             return {
